@@ -4,8 +4,8 @@
 // Minimal example to get started with CorrectExam.
 // For more features, see the full examples in the examples/ folder.
 
-// Import from Typst Universe (published package)
-#import "@preview/correctexam:0.1.0": *
+// Local import for repository CI and local development
+#import "../lib/lib.typ": *
 
 // Configure template - lang and mode are the most important settings
 #show: correctexam.with(lang: "en", mode: "withid")

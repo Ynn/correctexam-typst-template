@@ -294,8 +294,8 @@ mod tests {
 
         let map = build_marker_map(&markers);
         assert_eq!(map.len(), 2);
-        assert!(map.get("correctexam-lastname").is_some());
-        assert!(map.get("correctexam-answer-1-1-1").is_some());
+        assert!(map.contains_key("correctexam-lastname"));
+        assert!(map.contains_key("correctexam-answer-1-1-1"));
         let payload = map.get("correctexam-lastname").unwrap();
         assert!(payload.get("key").is_none());
     }
