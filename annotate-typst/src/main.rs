@@ -1,7 +1,7 @@
 #[cfg(feature = "native-cli")]
-use anyhow::{Context, Result};
-#[cfg(feature = "native-cli")]
 use annotate_typst::{annotate_pdf_bytes, AnnotationSummary};
+#[cfg(feature = "native-cli")]
+use anyhow::{Context, Result};
 #[cfg(feature = "native-cli")]
 use clap::Parser;
 #[cfg(feature = "native-cli")]
@@ -24,10 +24,7 @@ struct Cli {
 #[cfg(feature = "native-cli")]
 fn default_output_path(input: &Path) -> PathBuf {
     let parent = input.parent().unwrap_or_else(|| Path::new("."));
-    let stem = input
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("exam");
+    let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("exam");
     parent.join(format!("{stem}.annotated.pdf"))
 }
 
@@ -53,13 +50,15 @@ fn print_summary(summary: &AnnotationSummary, output: &Path) {
 #[cfg(feature = "native-cli")]
 fn run() -> Result<()> {
     let cli = Cli::parse();
-    let input_bytes = fs::read(&cli.input)
-        .with_context(|| format!("cannot read {}", cli.input.display()))?;
+    let input_bytes =
+        fs::read(&cli.input).with_context(|| format!("cannot read {}", cli.input.display()))?;
 
     let (annotated, summary) = annotate_pdf_bytes(&input_bytes)
         .with_context(|| format!("cannot annotate {}", cli.input.display()))?;
 
-    let output = cli.output.unwrap_or_else(|| default_output_path(&cli.input));
+    let output = cli
+        .output
+        .unwrap_or_else(|| default_output_path(&cli.input));
     write_annotated(&output, &annotated)?;
     print_summary(&summary, &output);
 

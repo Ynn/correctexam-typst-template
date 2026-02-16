@@ -58,7 +58,10 @@ pub fn annotate_pdf_bytes(pdf_bytes: &[u8]) -> Result<(Vec<u8>, AnnotationSummar
 
     for (key, payload) in &marker_map {
         let payload_text = serde_json::to_string(payload)?;
-        dict.set(key.as_bytes().to_vec(), Object::string_literal(payload_text));
+        dict.set(
+            key.as_bytes().to_vec(),
+            Object::string_literal(payload_text),
+        );
     }
 
     let mut out = Vec::new();
@@ -107,7 +110,8 @@ fn ensure_info_dict(pdf: &mut Document) -> ObjectId {
     }
 
     let id = pdf.new_object_id();
-    pdf.objects.insert(id, Object::Dictionary(Dictionary::new()));
+    pdf.objects
+        .insert(id, Object::Dictionary(Dictionary::new()));
     pdf.trailer.set("Info", Object::Reference(id));
     id
 }
@@ -223,7 +227,10 @@ fn resolve_dict<'a>(doc: &'a Document, obj: &'a Object) -> Result<&'a Dictionary
     }
 }
 
-fn resolve_stream<'a>(doc: &'a Document, obj: &'a Object) -> Result<&'a lopdf::Stream, AnnotateError> {
+fn resolve_stream<'a>(
+    doc: &'a Document,
+    obj: &'a Object,
+) -> Result<&'a lopdf::Stream, AnnotateError> {
     match obj {
         Object::Reference(id) => doc
             .get_object(*id)?
