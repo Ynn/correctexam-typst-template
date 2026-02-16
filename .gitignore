@@ -1,0 +1,100 @@
+# ==============================
+# Build artifacts
+# ==============================
+
+# Rust build directory
+target/
+
+# Typst build outputs
+build/
+correctexam-typst-template/build/
+
+# Temporary files
+tmp/
+_debug_pages/
+
+# ==============================
+# Compiled PDFs (except examples)
+# ==============================
+
+# Ignore all PDFs except original examples
+*.pdf
+!correctexam-typst-template/examples/*.pdf
+!correctexam-typst-template/quickstart/*.pdf
+
+# ==============================
+# Dependencies & Packages
+# ==============================
+
+# Rust
+Cargo.lock
+
+# Node.js (if needed in the future)
+node_modules/
+package-lock.json
+yarn.lock
+
+# ==============================
+# IDE & Editor files
+# ==============================
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+.ionide/
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.\#*
+
+# ==============================
+# OS-specific files
+# ==============================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+.Trash-*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ==============================
+# Rust-specific
+# ==============================
+
+# rustfmt backups
+**/*.rs.bk
+
+# MSVC debug info
+*.pdb
+
+# ==============================
+# LaTeX artifacts (legacy)
+# ==============================
+
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz

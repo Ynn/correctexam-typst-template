@@ -1,0 +1,209 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-rust-binaries:
+    name: Build annotate-ce (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: annotate-ce
+            asset_name: annotate-ce-linux-x86_64
+          
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: annotate-ce
+            asset_name: annotate-ce-linux-aarch64
+          
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: annotate-ce
+            asset_name: annotate-ce-macos-x86_64
+          
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: annotate-ce
+            asset_name: annotate-ce-macos-aarch64
+          
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: annotate-ce.exe
+            asset_name: annotate-ce-windows-x86_64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: annotate-typst/target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        working-directory: annotate-typst
+        run: cargo build --release --target ${{ matrix.target }} --bin annotate-ce
+
+      - name: Strip binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: strip annotate-typst/target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: annotate-typst/target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  package-typst-template:
+    name: Package Typst template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Typst
+        uses: typst-community/setup-typst@v3
+        with:
+          typst-version: '0.14.0'
+
+      - name: Validate Typst package
+        working-directory: correctexam-typst-template
+        run: |
+          typst compile --root . examples/exam-en.typ build/test-en.pdf
+          typst compile --root . examples/exam-fr.typ build/test-fr.pdf
+          echo "✓ Typst package validation successful"
+
+      - name: Create package archive
+        run: |
+          mkdir -p dist
+          cd correctexam-typst-template
+          tar -czf ../dist/correctexam-typst-template.tar.gz \
+            --exclude='build' \
+            --exclude='tests' \
+            --exclude='*.pdf' \
+            lib/ examples/ quickstart/ typst.toml README.md LICENSE
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: correctexam-typst-template
+          path: dist/correctexam-typst-template.tar.gz
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-rust-binaries, package-typst-template]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          cat > release_notes.md << EOF
+          # CorrectExam Typst Template ${VERSION}
+
+          ## 📦 Artifacts
+
+          ### Rust Binary: annotate-ce
+          Machine-readable PDF annotation tool for CorrectExam. Choose the binary for your platform:
+
+          - **Linux x86_64**: \`annotate-ce-linux-x86_64\`
+          - **Linux ARM64**: \`annotate-ce-linux-aarch64\`
+          - **macOS Intel**: \`annotate-ce-macos-x86_64\`
+          - **macOS Apple Silicon**: \`annotate-ce-macos-aarch64\`
+          - **Windows**: \`annotate-ce-windows-x86_64.exe\`
+
+          ### Typst Template Package
+          - **correctexam-typst-template.tar.gz**: Complete Typst package with examples and documentation
+
+          ## 🚀 Usage
+
+          ### Binary Installation
+          \`\`\`bash
+          # Download the binary for your platform
+          chmod +x annotate-ce-*  # Linux/macOS only
+          sudo mv annotate-ce-* /usr/local/bin/annotate-ce  # or add to PATH
+
+          # Verify installation
+          annotate-ce --version
+          \`\`\`
+
+          ### Typst Package Installation
+          \`\`\`bash
+          # Extract package
+          tar -xzf correctexam-typst-template.tar.gz
+
+          # Use in your project
+          typst compile --root path/to/correctexam-typst-template your-exam.typ
+          \`\`\`
+
+          ## 📖 Documentation
+          See the [README](https://github.com/correctexam/correctexam-typst-template/blob/${VERSION}/correctexam-typst-template/README.md) for complete documentation.
+
+          ## 🔗 Workflow
+          1. Write exam with Typst package → 2. Compile with Typst → 3. Annotate with \`annotate-ce\` → 4. Upload to CorrectExam
+          EOF
+          
+          echo "RELEASE_VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/annotate-ce-linux-x86_64/annotate-ce
+            artifacts/annotate-ce-linux-aarch64/annotate-ce
+            artifacts/annotate-ce-macos-x86_64/annotate-ce
+            artifacts/annotate-ce-macos-aarch64/annotate-ce
+            artifacts/annotate-ce-windows-x86_64.exe/annotate-ce.exe
+            artifacts/correctexam-typst-template/correctexam-typst-template.tar.gz
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true

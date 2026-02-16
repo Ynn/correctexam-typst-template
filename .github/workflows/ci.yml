@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-rust:
+    name: Test Rust Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            annotate-typst/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check Rust formatting
+        working-directory: annotate-typst
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        working-directory: annotate-typst
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build
+        working-directory: annotate-typst
+        run: cargo build --verbose
+
+      - name: Run tests
+        working-directory: annotate-typst
+        run: cargo test --verbose
+
+  test-typst:
+    name: Test Typst Template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Typst
+        uses: typst-community/setup-typst@v3
+        with:
+          typst-version: '0.14.0'
+
+      - name: Compile all examples
+        working-directory: correctexam-typst-template
+        run: |
+          mkdir -p build
+          for file in examples/*.typ quickstart/*.typ; do
+            filename=$(basename "$file" .typ)
+            echo "Compiling $file..."
+            typst compile --root . "$file" "build/${filename}.pdf"
+          done
+
+      - name: Compile all tests
+        working-directory: correctexam-typst-template
+        run: |
+          for file in tests/*.typ; do
+            filename=$(basename "$file" .typ)
+            echo "Compiling $file..."
+            typst compile --root . "$file" "build/${filename}.pdf"
+          done
+
+      - name: Upload compiled PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-examples
+          path: correctexam-typst-template/build/*.pdf
+          retention-days: 7
+
+  integration-test:
+    name: Integration Test (Typst + Rust)
+    needs: [test-rust, test-typst]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Typst
+        uses: typst-community/setup-typst@v3
+        with:
+          typst-version: '0.14.0'
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            annotate-typst/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build annotate-ce
+        working-directory: annotate-typst
+        run: cargo build --release --bin annotate-ce
+
+      - name: End-to-end workflow test
+        run: |
+          # Compile Typst example
+          mkdir -p build
+          typst compile --root correctexam-typst-template \
+            correctexam-typst-template/examples/exam-en.typ \
+            build/exam-en.pdf
+          
+          # Annotate with annotate-ce
+          ./annotate-typst/target/release/annotate-ce \
+            build/exam-en.pdf \
+            -o build/exam-en.annotated.pdf
+          
+          # Verify annotated PDF exists and has content
+          if [ ! -f build/exam-en.annotated.pdf ]; then
+            echo "ERROR: Annotated PDF not created"
+            exit 1
+          fi
+          
+          size=$(stat -f%z build/exam-en.annotated.pdf 2>/dev/null || stat -c%s build/exam-en.annotated.pdf)
+          if [ "$size" -lt 1000 ]; then
+            echo "ERROR: Annotated PDF is too small ($size bytes)"
+            exit 1
+          fi
+          
+          echo "✓ Integration test successful"
+          echo "  Original PDF: $(stat -f%z build/exam-en.pdf 2>/dev/null || stat -c%s build/exam-en.pdf) bytes"
+          echo "  Annotated PDF: $size bytes"

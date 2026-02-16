@@ -1,0 +1,29 @@
+[package]
+name = "annotate-typst"
+version = "0.1.0"
+edition = "2021"
+description = "Annotate CorrectExam Typst PDFs from embedded marker metadata"
+license = "MIT"
+
+[lib]
+name = "annotate_typst"
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "annotate-ce"
+path = "src/main.rs"
+required-features = ["native-cli"]
+
+[features]
+default = ["native-cli"]
+native-cli = ["dep:anyhow", "dep:clap"]
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+lopdf = "0.34"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+anyhow = { version = "1.0", optional = true }
+clap = { version = "4.5", features = ["derive"], optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
