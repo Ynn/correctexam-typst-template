@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>CorrectExam PDF Annotator</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>CorrectExam PDF Annotator</h1>
+      <p class="intro">
+        Drop a non-annotated CorrectExam PDF, run annotation, then download the annotated PDF.
+      </p>
+
+      <section id="drop-zone" class="drop-zone" aria-label="Drop PDF here">
+        <p>Drop PDF here</p>
+        <p class="hint">or click to select a file</p>
+      </section>
+
+      <input id="file-input" type="file" accept="application/pdf,.pdf" hidden />
+
+      <div class="actions">
+        <button id="annotate-btn" disabled>Annotate</button>
+        <button id="download-btn" disabled>Download annotated PDF</button>
+      </div>
+
+      <dl class="meta">
+        <dt>Input</dt>
+        <dd id="input-name">None</dd>
+        <dt>Output</dt>
+        <dd id="output-name">None</dd>
+      </dl>
+
+      <p id="status" class="status" role="status" aria-live="polite">Waiting for file.</p>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

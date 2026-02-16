@@ -46,9 +46,32 @@ cargo run --manifest-path annotate-typst/Cargo.toml -- \
 
 - Package documentation: [correctexam-typst-template/README.md](correctexam-typst-template/README.md)
 - Annotation tool documentation: [annotate-typst/README.md](annotate-typst/README.md)
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
-- CI/CD workflows: [.github/README.md](.github/README.md)
+
+## Web annotator (PWA)
+
+A minimal web app is available in `annotate-web/`.
+
+It supports:
+
+- Drag and drop PDF input
+- Browser-side annotation using WebAssembly
+- Download of the annotated PDF
+
+The app is designed for GitHub Pages deployment via `.github/workflows/pages.yml`.
+
+Build the WASM package locally:
+
+```bash
+wasm-pack build annotate-typst \
+  --release \
+  --target web \
+  --out-dir ../annotate-web/pkg \
+  -- \
+  --no-default-features \
+  --features wasm
+```
+
+Then serve `annotate-web/` with any static file server.
 
 ## Development
 

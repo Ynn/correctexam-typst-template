@@ -8,6 +8,7 @@ target/
 # Typst build outputs
 build/
 correctexam-typst-template/build/
+annotate-web/pkg/
 
 # Temporary files
 tmp/
