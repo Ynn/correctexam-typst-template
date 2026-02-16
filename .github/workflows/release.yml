@@ -83,6 +83,7 @@ jobs:
       - name: Validate Typst package
         working-directory: correctexam-typst-template
         run: |
+          mkdir -p build
           typst compile --root . examples/exam-en.typ build/test-en.pdf
           typst compile --root . examples/exam-fr.typ build/test-fr.pdf
           echo "✓ Typst package validation successful"
